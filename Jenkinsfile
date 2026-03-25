@@ -27,16 +27,28 @@ pipeline {
 
                     echo "Changed Files:\n${changes}"
 
-                    if (changes.contains("auth-service")) {
-                        env.AUTH_CHANGED = "true"
-                    }
+                    // Convert into list
+                    def changedFiles = changes.split("\n")
 
-                    if (changes.contains("config-service")) {
-                        env.CONFIG_CHANGED = "true"
-                    }
+                    // Reset flags
+                    env.AUTH_CHANGED   = "false"
+                    env.CONFIG_CHANGED = "false"
+                    env.LOGIN_CHANGED  = "false"
 
-                    if (changes.contains("login-service")) {
-                        env.LOGIN_CHANGED = "true"
+                    // Detect service-wise changes
+                    for (file in changedFiles) {
+
+                        if (file.startsWith("auth-service/")) {
+                            env.AUTH_CHANGED = "true"
+                        }
+
+                        if (file.startsWith("config-service/")) {
+                            env.CONFIG_CHANGED = "true"
+                        }
+
+                        if (file.startsWith("login-service/")) {
+                            env.LOGIN_CHANGED = "true"
+                        }
                     }
 
                     echo "AUTH_CHANGED: ${env.AUTH_CHANGED}"
