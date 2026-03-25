@@ -2,7 +2,9 @@ pipeline {
     agent { label 'ubuntu-agent' }
 
     environment {
-        IMAGE_NAME = "microservice"
+        AUTH_CHANGED   = "false"
+        CONFIG_CHANGED = "false"
+        LOGIN_CHANGED  = "false"
     }
 
     stages {
@@ -16,16 +18,30 @@ pipeline {
         stage('Detect Changes') {
             steps {
                 script {
+
+                    // Safe diff (handles first commit also)
                     def changes = sh(
-                        script: "git diff origin/main...HEAD --name-only",
+                        script: "git diff HEAD~1 HEAD --name-only || git show --name-only HEAD",
                         returnStdout: true
                     ).trim()
 
-                    echo "Changes: ${changes}"
+                    echo "Changed Files:\n${changes}"
 
-                    env.AUTH_CHANGED   = changes.contains("auth-service") ? "true" : "false"
-                    env.CONFIG_CHANGED = changes.contains("config-service") ? "true" : "false"
-                    env.LOGIN_CHANGED  = changes.contains("login-service") ? "true" : "false"
+                    if (changes.contains("auth-service")) {
+                        env.AUTH_CHANGED = "true"
+                    }
+
+                    if (changes.contains("config-service")) {
+                        env.CONFIG_CHANGED = "true"
+                    }
+
+                    if (changes.contains("login-service")) {
+                        env.LOGIN_CHANGED = "true"
+                    }
+
+                    echo "AUTH_CHANGED: ${env.AUTH_CHANGED}"
+                    echo "CONFIG_CHANGED: ${env.CONFIG_CHANGED}"
+                    echo "LOGIN_CHANGED: ${env.LOGIN_CHANGED}"
                 }
             }
         }
@@ -34,26 +50,41 @@ pipeline {
             parallel {
 
                 stage('Auth Service') {
-                    when { expression { env.AUTH_CHANGED == "true" } }
+                    when {
+                        expression { env.AUTH_CHANGED == "true" }
+                    }
                     steps {
-                        echo "Building AUTH..."
-                        sh 'cd auth-service && docker build -t auth-service .'
+                        echo "Building AUTH service..."
+                        sh '''
+                        cd auth-service
+                        docker build -t auth-service .
+                        '''
                     }
                 }
 
                 stage('Config Service') {
-                    when { expression { env.CONFIG_CHANGED == "true" } }
+                    when {
+                        expression { env.CONFIG_CHANGED == "true" }
+                    }
                     steps {
-                        echo "Building CONFIG..."
-                        sh 'cd config-service && docker build -t config-service .'
+                        echo "Building CONFIG service..."
+                        sh '''
+                        cd config-service
+                        docker build -t config-service .
+                        '''
                     }
                 }
 
                 stage('Login Service') {
-                    when { expression { env.LOGIN_CHANGED == "true" } }
+                    when {
+                        expression { env.LOGIN_CHANGED == "true" }
+                    }
                     steps {
-                        echo "Building LOGIN..."
-                        sh 'cd login-service && docker build -t login-service .'
+                        echo "Building LOGIN service..."
+                        sh '''
+                        cd login-service
+                        docker build -t login-service .
+                        '''
                     }
                 }
             }
@@ -85,6 +116,15 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully "
+        }
+        failure {
+            echo "Pipeline failed "
         }
     }
 }
