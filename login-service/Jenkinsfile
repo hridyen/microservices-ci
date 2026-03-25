@@ -1,0 +1,40 @@
+pipeline {
+    agent { label 'ubuntu-agent'}
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/hridyen/microservices-ci.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building LOGIN service..."
+                sh '''
+                cd login-service
+                docker build -t login-service .
+                '''
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                echo "Running LOGIN container..."
+                sh '''
+                docker rm -f login-container || true
+                docker run -d -p 3003:3003 --name login-container login-service
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Login Service Deployed "
+        }
+        failure {
+            echo "Login Service Failed "
+        }
+    }
+}
