@@ -1,5 +1,6 @@
 pipeline {
     agent { label 'ubuntu-agent'}
+
     stages {
 
         stage('Checkout Code') {
@@ -8,7 +9,22 @@ pipeline {
             }
         }
 
+        stage('Check Changes') {
+            when {
+                not {
+                    changeset "login-service/**"
+                }
+            }
+            steps {
+                echo "No changes in login-service. Skipping..."
+                script { currentBuild.result = 'NOT_BUILT' }
+            }
+        }
+
         stage('Build Docker Image') {
+            when {
+                changeset "login-service/**"
+            }
             steps {
                 echo "Building LOGIN service..."
                 sh '''
@@ -19,6 +35,9 @@ pipeline {
         }
 
         stage('Run Container') {
+            when {
+                changeset "login-service/**"
+            }
             steps {
                 echo "Running LOGIN container..."
                 sh '''
@@ -31,10 +50,7 @@ pipeline {
 
     post {
         success {
-            echo "Login Service Deployed "
-        }
-        failure {
-            echo "Login Service Failed "
+            echo "Login Service Done 🚀"
         }
     }
 }
