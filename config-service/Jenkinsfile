@@ -9,7 +9,22 @@ pipeline {
             }
         }
 
+        stage('Check Changes') {
+            when {
+                not {
+                    changeset "config-service/**"
+                }
+            }
+            steps {
+                echo "No changes in config-service. Skipping..."
+                script { currentBuild.result = 'NOT_BUILT' }
+            }
+        }
+
         stage('Build Docker Image') {
+            when {
+                changeset "config-service/**"
+            }
             steps {
                 echo "Building CONFIG service..."
                 sh '''
@@ -20,6 +35,9 @@ pipeline {
         }
 
         stage('Run Container') {
+            when {
+                changeset "config-service/**"
+            }
             steps {
                 echo "Running CONFIG container..."
                 sh '''
@@ -32,10 +50,7 @@ pipeline {
 
     post {
         success {
-            echo "Config Service Deployed "
-        }
-        failure {
-            echo "Config Service Failed "
+            echo "Config Service Done 🚀"
         }
     }
 }
