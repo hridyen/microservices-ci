@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'ubuntu-agent' }
+    agent { label 'ubuntu-agent'}
 
     environment {
         AUTH_CHANGED   = "false"
@@ -19,34 +19,35 @@ pipeline {
             steps {
                 script {
 
-                    // Safe diff (handles first commit also)
                     def changes = sh(
                         script: "git diff HEAD~1 HEAD --name-only || git show --name-only HEAD",
                         returnStdout: true
                     ).trim()
 
-                    echo "Changed Files:\n${changes}"
+                    echo "Raw Changes Output:\n${changes}"
 
-                    // Convert into list
                     def changedFiles = changes.split("\n")
 
-                    // Reset flags
+                    // reset flags
                     env.AUTH_CHANGED   = "false"
                     env.CONFIG_CHANGED = "false"
                     env.LOGIN_CHANGED  = "false"
 
-                    // Detect service-wise changes
                     for (file in changedFiles) {
 
-                        if (file.startsWith("auth-service/")) {
+                        def cleanFile = file.trim()   // 🔥 IMPORTANT FIX
+
+                        echo "Processing file: '${cleanFile}'"
+
+                        if (cleanFile.contains("auth-service/")) {
                             env.AUTH_CHANGED = "true"
                         }
 
-                        if (file.startsWith("config-service/")) {
+                        if (cleanFile.contains("config-service/")) {
                             env.CONFIG_CHANGED = "true"
                         }
 
-                        if (file.startsWith("login-service/")) {
+                        if (cleanFile.contains("login-service/")) {
                             env.LOGIN_CHANGED = "true"
                         }
                     }
@@ -136,7 +137,7 @@ pipeline {
             echo "Pipeline executed successfully "
         }
         failure {
-            echo "Pipeline failed "
+            echo "Pipeline failed"
         }
     }
 }
