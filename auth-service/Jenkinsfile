@@ -9,7 +9,22 @@ pipeline {
             }
         }
 
+        stage('Check Changes') {
+            when {
+                not {
+                    changeset "auth-service/**"
+                }
+            }
+            steps {
+                echo "No changes in auth-service. Skipping..."
+                script { currentBuild.result = 'NOT_BUILT' }
+            }
+        }
+
         stage('Build Docker Image') {
+            when {
+                changeset "auth-service/**"
+            }
             steps {
                 echo "Building AUTH service..."
                 sh '''
@@ -20,6 +35,9 @@ pipeline {
         }
 
         stage('Run Container') {
+            when {
+                changeset "auth-service/**"
+            }
             steps {
                 echo "Running AUTH container..."
                 sh '''
@@ -32,10 +50,7 @@ pipeline {
 
     post {
         success {
-            echo "Auth Service Deployed "
-        }
-        failure {
-            echo "Auth Service Failed "
+            echo "Auth Service Done 🚀"
         }
     }
 }
