@@ -28,29 +28,34 @@ pipeline {
 
                     def changedFiles = changes.split("\n")
 
-                    // reset flags
-                    env.AUTH_CHANGED   = "false"
-                    env.CONFIG_CHANGED = "false"
-                    env.LOGIN_CHANGED  = "false"
+                    //  LOCAL VARIABLES (IMPORTANT FIX)
+                    def authChanged   = false
+                    def configChanged = false
+                    def loginChanged  = false
 
                     for (file in changedFiles) {
 
-                        def cleanFile = file.trim()   // 🔥 IMPORTANT FIX
+                        def cleanFile = file.trim()
 
                         echo "Processing file: '${cleanFile}'"
 
                         if (cleanFile.contains("auth-service/")) {
-                            env.AUTH_CHANGED = "true"
+                            authChanged = true
                         }
 
                         if (cleanFile.contains("config-service/")) {
-                            env.CONFIG_CHANGED = "true"
+                            configChanged = true
                         }
 
                         if (cleanFile.contains("login-service/")) {
-                            env.LOGIN_CHANGED = "true"
+                            loginChanged = true
                         }
                     }
+
+                    // 🔥 SET ENV AT END (FINAL STEP)
+                    env.AUTH_CHANGED   = authChanged.toString()
+                    env.CONFIG_CHANGED = configChanged.toString()
+                    env.LOGIN_CHANGED  = loginChanged.toString()
 
                     echo "AUTH_CHANGED: ${env.AUTH_CHANGED}"
                     echo "CONFIG_CHANGED: ${env.CONFIG_CHANGED}"
@@ -137,7 +142,7 @@ pipeline {
             echo "Pipeline executed successfully "
         }
         failure {
-            echo "Pipeline failed"
+            echo "Pipeline failed "
         }
     }
 }
